@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-100 antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+@layer components {
+  .shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #263348 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .glass-card {
+    @apply bg-surface/60 backdrop-blur-sm border border-border/50;
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white font-medium px-4 py-2 rounded-lg
+           transition-all duration-200 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)]
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-surface hover:bg-surface-hover text-slate-300 font-medium px-4 py-2 rounded-lg
+           border border-border transition-all duration-200 active:scale-95;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-800 border border-border rounded-lg px-3 py-2 text-slate-100
+           placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+           transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+}
