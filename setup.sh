@@ -10,6 +10,54 @@ cd poultryflow
 docker compose up -d --build
 cd ..
 echo "    Backend running at http://localhost:8000"
+
+echo "    Seeding default users..."
+API_URL="http://localhost:8000"
+
+# Wait for API readiness
+for _ in {1..60}; do
+  if curl -sf "$API_URL/health" > /dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+seed_or_verify_user() {
+  local name="$1"
+  local email="$2"
+  local password="$3"
+  local role="$4"
+
+  local register_status
+  register_status=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$API_URL/auth/register" \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$password\",\"role\":\"$role\"}")
+
+  if [ "$register_status" = "200" ]; then
+    echo "      ✓ Created: $email"
+    return 0
+  fi
+
+  local login_status
+  login_status=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$API_URL/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\"}")
+
+  if [ "$login_status" = "200" ]; then
+    echo "      ✓ Exists:  $email"
+    return 0
+  fi
+
+  echo "      ✗ Failed:  $email"
+  return 1
+}
+
+seed_or_verify_user "Admin User" "admin@poultryflow.com" "admin123" "admin" || true
+seed_or_verify_user "Supervisor User" "supervisor@poultryflow.com" "super123" "supervisor" || true
+seed_or_verify_user "Operator User" "operator@poultryflow.com" "oper123" "operator" || true
+
 echo ""
 
 # ── 2. Admin Web ──────────────────────────────────────────────────────────────

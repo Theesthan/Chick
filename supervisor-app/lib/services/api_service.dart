@@ -1,9 +1,27 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 
-const String _baseUrl = 'http://10.0.2.2:8000'; // Android emulator → localhost
+const Duration _requestTimeout = Duration(seconds: 8);
+
+String get _baseUrl {
+  const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  if (configured.isNotEmpty) return configured;
+
+  if (kIsWeb) return 'http://localhost:8000';
+
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.android:
+      return 'http://10.0.2.2:8000'; // Android emulator → host localhost
+    case TargetPlatform.iOS:
+      return 'http://127.0.0.1:8000'; // iOS simulator → host localhost
+    default:
+      return 'http://localhost:8000';
+  }
+}
 
 class ApiException implements Exception {
   final String message;
@@ -37,24 +55,54 @@ class ApiService {
     if (_token != null) 'Authorization': 'Bearer $_token',
   };
 
+  static ApiException _networkException() {
+    return ApiException(
+      'Cannot reach server at $_baseUrl. Make sure backend is running and this device can access it.',
+    );
+  }
+
   static Future<dynamic> _get(String path) async {
-    final res = await http.get(Uri.parse('$_baseUrl$path'), headers: _headers);
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    if (res.statusCode == 401) throw ApiException('Unauthorized');
-    throw ApiException(_extractError(res.body));
+    try {
+      final res = await http
+          .get(Uri.parse('$_baseUrl$path'), headers: _headers)
+          .timeout(_requestTimeout);
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      if (res.statusCode == 401) throw ApiException('Unauthorized');
+      throw ApiException(_extractError(res.body));
+    } on TimeoutException {
+      throw ApiException('Request timed out after ${_requestTimeout.inSeconds}s to $_baseUrl.');
+    } on http.ClientException {
+      throw _networkException();
+    }
   }
 
   static Future<dynamic> _post(String path, Map<String, dynamic> body) async {
-    final res = await http.post(Uri.parse('$_baseUrl$path'), headers: _headers, body: jsonEncode(body));
-    if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
-    if (res.statusCode == 401) throw ApiException('Unauthorized');
-    throw ApiException(_extractError(res.body));
+    try {
+      final res = await http
+          .post(Uri.parse('$_baseUrl$path'), headers: _headers, body: jsonEncode(body))
+          .timeout(_requestTimeout);
+      if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
+      if (res.statusCode == 401) throw ApiException('Unauthorized');
+      throw ApiException(_extractError(res.body));
+    } on TimeoutException {
+      throw ApiException('Request timed out after ${_requestTimeout.inSeconds}s to $_baseUrl.');
+    } on http.ClientException {
+      throw _networkException();
+    }
   }
 
   static Future<dynamic> _patch(String path, Map<String, dynamic> body) async {
-    final res = await http.patch(Uri.parse('$_baseUrl$path'), headers: _headers, body: jsonEncode(body));
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    throw ApiException(_extractError(res.body));
+    try {
+      final res = await http
+          .patch(Uri.parse('$_baseUrl$path'), headers: _headers, body: jsonEncode(body))
+          .timeout(_requestTimeout);
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      throw ApiException(_extractError(res.body));
+    } on TimeoutException {
+      throw ApiException('Request timed out after ${_requestTimeout.inSeconds}s to $_baseUrl.');
+    } on http.ClientException {
+      throw _networkException();
+    }
   }
 
   static String _extractError(String body) {

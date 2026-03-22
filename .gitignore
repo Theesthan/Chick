@@ -1,0 +1,64 @@
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Environment / Secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Python (backend: poultryflow) ----
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# ---- Node / Vite (admin-web) ----
+node_modules/
+admin-web/node_modules/
+admin-web/dist/
+admin-web/.vite/
+
+# ---- Flutter / Dart (supervisor-app) ----
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-versions
+.pub/
+.pub-cache/
+supervisor-app/build/
+
+# iOS / Android / Desktop generated build artifacts
+**/Pods/
+**/.symlinks/
+**/Flutter/ephemeral/
+**/Generated.xcconfig
+**/generated_plugin_registrant.*
+**/local.properties
+**/key.properties
+
+# ---- Docker ----
+*.pid
