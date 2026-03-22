@@ -18,6 +18,20 @@ def create_procurement(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.admin))
 ):
+    from fastapi import HTTPException, status
+    
+    # Real-world logic: Do not allow procuring more chicks than total farm capacity
+    if procurement_in.item_type.value == "chicks":
+        from models.farm import Farm
+        from sqlalchemy.sql import func
+        total_capacity = db.query(func.sum(Farm.capacity)).scalar() or 0
+        current_chicks = inventory.get_latest_balance(db, item_type="chicks")
+        if current_chicks + procurement_in.quantity > total_capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot procure {procurement_in.quantity} chicks. Existing inventory ({current_chicks}) + new would exceed total system farm capacity ({total_capacity})."
+            )
+
     db_proc = procurement.create(db, obj_in=procurement_in)
 
     # Auto-create inventory inward transaction for the procured item

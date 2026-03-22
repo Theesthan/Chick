@@ -11,6 +11,13 @@ def create_transport(db: Session, *, transport_in: TransportCreate) -> Transport
     if not db_batch:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
 
+    from models.batch import BatchStatus
+    if db_batch.status != BatchStatus.active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot transport a batch that is {db_batch.status.value}",
+        )
+
     existing = transport.get_by_batch(db, batch_id=transport_in.batch_id)
     if existing:
         raise HTTPException(
