@@ -1,0 +1,74 @@
+"""Shared pytest fixtures for PoultryFlow test suite."""
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from database import get_db
+from models.base import Base
+from main import app
+
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
+
+engine = create_engine(SQLALCHEMY_TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_db():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture()
+def db():
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+    yield session
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture()
+def client(db):
+    def override_get_db():
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def admin_token(client):
+    """Register an admin and return a bearer token."""
+    client.post("/auth/register", json={
+        "name": "Test Admin", "email": "testadmin@test.com",
+        "password": "testpass123", "role": "admin"
+    })
+    r = client.post("/auth/login", json={"email": "testadmin@test.com", "password": "testpass123"})
+    return r.json()["access_token"]
+
+
+@pytest.fixture()
+def supervisor_token(client):
+    client.post("/auth/register", json={
+        "name": "Test Supervisor", "email": "testsup@test.com",
+        "password": "testpass123", "role": "supervisor"
+    })
+    r = client.post("/auth/login", json={"email": "testsup@test.com", "password": "testpass123"})
+    return r.json()["access_token"]
+
+
+@pytest.fixture()
+def auth_headers(admin_token):
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest.fixture()
+def sup_headers(supervisor_token):
+    return {"Authorization": f"Bearer {supervisor_token}"}

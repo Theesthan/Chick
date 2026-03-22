@@ -22,6 +22,11 @@ export default function ProcurementPage() {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const UNITS: Record<string, string[]> = {
+    feed:     ['kg', 'g', 'bags', 'tonnes'],
+    medicine: ['ml', 'litres', 'bottles', 'vials'],
+    chicks:   ['count', 'dozen'],
+  }
   const [form, setForm] = useState({ item_type: 'feed', quantity: '', unit: 'kg', unit_price: '', supplier: '', purchased_at: '' })
 
   const load = () => getProcurements().then(setItems).finally(() => setLoading(false))
@@ -74,15 +79,22 @@ export default function ProcurementPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-slate-300 mb-1">Item Type</label>
-              <select className="input-field" value={form.item_type} onChange={e => F('item_type', e.target.value)}>
+              <select className="input-field" value={form.item_type} onChange={e => {
+                const it = e.target.value
+                setForm(p => ({ ...p, item_type: it, unit: (UNITS[it] ?? ['kg'])[0] }))
+              }}>
                 <option value="feed">Feed</option>
                 <option value="medicine">Medicine</option>
                 <option value="chicks">Chicks</option>
               </select>
+              {/* reset unit when item type changes */}
+              {form.item_type && (() => { /* handled via onChange below */ return null })()}
             </div>
             <div>
               <label className="block text-sm text-slate-300 mb-1">Unit</label>
-              <input className="input-field" placeholder="kg / litres / count" value={form.unit} onChange={e => F('unit', e.target.value)} required />
+              <select className="input-field" value={form.unit} onChange={e => F('unit', e.target.value)} required>
+                {(UNITS[form.item_type] ?? ['kg']).map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

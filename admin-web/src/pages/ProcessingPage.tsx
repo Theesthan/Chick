@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Factory, CheckCircle } from 'lucide-react'
+import { Factory, CheckCircle, AlertTriangle } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
 import { useToast } from '../components/Toast'
@@ -26,6 +26,7 @@ interface Form {
   breast_kg: string
   lollipop_kg: string
   waste_kg: string
+  shelf_life_days: string
 }
 
 function AnimatedBar({ value, max, color, label }: { value: number; max: number; color: string; label: string }) {
@@ -49,6 +50,36 @@ function AnimatedBar({ value, max, color, label }: { value: number; max: number;
   )
 }
 
+function ShelfLifeBanner({ processing }: { processing: Processing }) {
+  const processedAt = new Date((processing as Processing & { processed_at?: string }).processed_at ?? processing.created_at)
+  const shelfLife = (processing as Processing & { shelf_life_days?: number }).shelf_life_days ?? 3
+  const expiresAt = new Date(processedAt)
+  expiresAt.setDate(expiresAt.getDate() + shelfLife)
+  const now = new Date()
+  const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / 86400000)
+  const expired = daysLeft <= 0
+
+  return (
+    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+      className={`flex items-start gap-3 p-4 rounded-xl border ${expired
+        ? 'bg-red-950/50 border-red-500/40 text-red-400'
+        : daysLeft <= 1
+          ? 'bg-amber-950/50 border-amber-500/40 text-amber-400'
+          : 'bg-green-950/40 border-green-500/30 text-green-400'
+      }`}>
+      <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="font-semibold text-sm">
+          {expired ? '⚠ SHELF LIFE EXPIRED' : daysLeft === 1 ? '⚠ Expires Today' : `Shelf Life: ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`}
+        </p>
+        <p className="text-xs opacity-80 mt-0.5">
+          Processed: {processedAt.toLocaleDateString()} · Expires: {expiresAt.toLocaleDateString()} · {shelfLife} day shelf life
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function ProcessingPage() {
   const { toast } = useToast()
   const [batches, setBatches] = useState<Batch[]>([])
@@ -58,6 +89,7 @@ export default function ProcessingPage() {
   const [form, setForm] = useState<Form>({
     batch_id: '', farm_weight: '', inward_weight: '',
     wings_kg: '0', legs_kg: '0', breast_kg: '0', lollipop_kg: '0', waste_kg: '0',
+    shelf_life_days: '3',
   })
 
   useEffect(() => { getBatches().then(setBatches) }, [])
@@ -72,26 +104,32 @@ export default function ProcessingPage() {
 
   const totalBreakdown = BREAKDOWN_FIELDS.reduce((s, f) => s + (Number(form[f.key]) || 0), 0)
   const inward = Number(form.inward_weight) || 0
-  const loss = (Number(form.farm_weight) || 0) - inward
-  const lossColor = loss > 0 ? (loss / (Number(form.farm_weight) || 1)) > 0.1 ? 'text-red-400' : 'text-amber-400' : 'text-green-400'
+  const farmW = Number(form.farm_weight) || 0
+  const loss = farmW - inward
+  const lossColor = loss > 0 ? (loss / (farmW || 1)) > 0.1 ? 'text-red-400' : 'text-amber-400' : 'text-green-400'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (farmW <= 0 || inward <= 0) { toast('Weights must be positive', 'error'); return }
+    if (inward > farmW) { toast('Inward weight cannot exceed farm weight', 'error'); return }
     if (totalBreakdown > inward + 0.01) {
       toast(`Breakdown total (${totalBreakdown.toFixed(2)} kg) exceeds inward weight (${inward} kg)`, 'error')
       return
     }
+    const shelfDays = Number(form.shelf_life_days)
+    if (shelfDays < 1 || shelfDays > 30) { toast('Shelf life must be 1–30 days', 'error'); return }
     setSaving(true)
     try {
       await createProcessing({
         batch_id: form.batch_id,
-        farm_weight: Number(form.farm_weight),
-        inward_weight: Number(form.inward_weight),
+        farm_weight: farmW,
+        inward_weight: inward,
         wings_kg: Number(form.wings_kg),
         legs_kg: Number(form.legs_kg),
         breast_kg: Number(form.breast_kg),
         lollipop_kg: Number(form.lollipop_kg),
         waste_kg: Number(form.waste_kg),
+        shelf_life_days: shelfDays,
       })
       setSubmitted(true)
       toast('Processing recorded!', 'success')
@@ -120,17 +158,21 @@ export default function ProcessingPage() {
                   <CheckCircle className="w-16 h-16 text-green-400" />
                 </motion.div>
                 <p className="text-lg font-semibold text-slate-200">Processing Recorded!</p>
-                <button onClick={() => { setSubmitted(false); setExisting(null); setForm({ batch_id: '', farm_weight: '', inward_weight: '', wings_kg: '0', legs_kg: '0', breast_kg: '0', lollipop_kg: '0', waste_kg: '0' }) }}
+                <button onClick={() => { setSubmitted(false); setExisting(null); setForm({ batch_id: '', farm_weight: '', inward_weight: '', wings_kg: '0', legs_kg: '0', breast_kg: '0', lollipop_kg: '0', waste_kg: '0', shelf_life_days: '3' }) }}
                   className="btn-secondary mt-2">Record Another</button>
               </motion.div>
             ) : existing ? (
-              <motion.div key="existing" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="text-center py-8">
-                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3" />
-                <p className="text-slate-300">Processing already recorded for this batch.</p>
-                <div className="mt-4 text-sm text-muted space-y-1">
-                  <p>Farm Weight: {existing.farm_weight} kg · Inward: {existing.inward_weight} kg · Loss: {existing.loss} kg</p>
+              <motion.div key="existing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <p className="text-slate-300 text-sm">Processing already recorded for this batch.</p>
                 </div>
+                <div className="bg-slate-800/60 rounded-xl p-4 text-sm space-y-1">
+                  <div className="flex justify-between"><span className="text-muted">Farm Weight</span><span>{existing.farm_weight} kg</span></div>
+                  <div className="flex justify-between"><span className="text-muted">Inward Weight</span><span>{existing.inward_weight} kg</span></div>
+                  <div className="flex justify-between"><span className="text-muted">Transit Loss</span><span className="text-amber-400">{existing.loss.toFixed(2)} kg</span></div>
+                </div>
+                <ShelfLifeBanner processing={existing} />
               </motion.div>
             ) : (
               <motion.form key="form" onSubmit={handleSubmit} className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -147,11 +189,11 @@ export default function ProcessingPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Farm Weight (kg)</label>
-                    <input className="input-field" type="number" step="any" placeholder="6000" value={form.farm_weight} onChange={e => F('farm_weight', e.target.value)} required />
+                    <input className="input-field" type="number" step="any" min="0.01" placeholder="6000" value={form.farm_weight} onChange={e => F('farm_weight', e.target.value)} required />
                   </div>
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Inward Weight (kg)</label>
-                    <input className="input-field" type="number" step="any" placeholder="5900" value={form.inward_weight} onChange={e => F('inward_weight', e.target.value)} required />
+                    <input className="input-field" type="number" step="any" min="0.01" placeholder="5900" value={form.inward_weight} onChange={e => F('inward_weight', e.target.value)} required />
                   </div>
                 </div>
 
@@ -160,9 +202,17 @@ export default function ProcessingPage() {
                   <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                     className="flex justify-between items-center bg-slate-800/60 rounded-xl px-4 py-3 text-sm">
                     <span className="text-muted">Transit Loss</span>
-                    <span className={`font-semibold ${lossColor}`}>{loss.toFixed(2)} kg ({form.farm_weight ? ((loss / Number(form.farm_weight)) * 100).toFixed(1) : 0}%)</span>
+                    <span className={`font-semibold ${lossColor}`}>{loss.toFixed(2)} kg ({farmW ? ((loss / farmW) * 100).toFixed(1) : 0}%)</span>
                   </motion.div>
                 )}
+
+                {/* Shelf Life */}
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">Shelf Life (days)</label>
+                  <input className="input-field" type="number" min="1" max="30" placeholder="3"
+                    value={form.shelf_life_days} onChange={e => F('shelf_life_days', e.target.value)} required />
+                  <p className="text-xs text-muted mt-1">Alert will show when shelf life is exceeded (default: 3 days for fresh poultry)</p>
+                </div>
 
                 {/* Breakdown */}
                 <div>
@@ -205,7 +255,6 @@ export default function ProcessingPage() {
                 <AnimatedBar key={key} value={Number(form[key]) || 0} max={inward} color={color} label={label} />
               ))}
 
-              {/* Pie-style summary */}
               <div className="mt-6 pt-4 border-t border-border">
                 <p className="text-xs text-muted mb-3">Distribution</p>
                 <div className="h-4 rounded-full overflow-hidden flex">
@@ -216,7 +265,6 @@ export default function ProcessingPage() {
                         initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
                     ) : null
                   })}
-                  {/* Remaining */}
                   {inward > totalBreakdown && (
                     <div style={{ width: `${((inward - totalBreakdown) / inward) * 100}%` }} className="bg-slate-600" />
                   )}

@@ -114,7 +114,19 @@ export interface Processing {
   breast_kg: number
   lollipop_kg: number
   waste_kg: number
+  shelf_life_days: number
+  processed_at: string
   processed_by: string
+  created_at: string
+}
+
+export interface ActivityLog {
+  id: string
+  user_id: string | null
+  action: string
+  entity: string | null
+  entity_id: string | null
+  detail: string | null
   created_at: string
 }
 

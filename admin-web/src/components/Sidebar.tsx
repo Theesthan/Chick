@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, MapPin, Package, ShoppingCart, Warehouse,
   ClipboardList, Scale, Truck, Factory, TrendingUp, Users, BarChart3,
-  ChevronRight, LogOut, Bird,
+  ChevronRight, LogOut, Bird, Activity,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
@@ -20,6 +20,7 @@ const allNav = [
   { path: '/sales',         label: 'Sales',           icon: TrendingUp,      roles: ['admin'] },
   { path: '/reports',       label: 'Reports',         icon: BarChart3,       roles: ['admin','supervisor'] },
   { path: '/users',         label: 'Users',           icon: Users,           roles: ['admin'] },
+  { path: '/logs',          label: 'Activity Logs',   icon: Activity,        roles: ['admin'] },
 ]
 
 export default function Sidebar() {

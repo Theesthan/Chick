@@ -15,6 +15,7 @@ from routes import (
     processing,
     sales,
     reports,
+    logs,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +47,7 @@ app.include_router(transport.router, prefix="/transport", tags=["Transport"])
 app.include_router(processing.router, prefix="/processing", tags=["Processing"])
 app.include_router(sales.router, prefix="/sales", tags=["Sales"])
 app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+app.include_router(logs.router, prefix="/logs", tags=["Logs"])
 
 
 @app.get("/health", tags=["Health"])

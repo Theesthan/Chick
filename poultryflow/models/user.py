@@ -26,3 +26,4 @@ class User(Base, TimestampMixin):
     verified_reports = relationship("DailyReport", back_populates="verifier", foreign_keys="DailyReport.verified_by")
     weighings = relationship("Weighing", back_populates="recorder")
     processings = relationship("Processing", back_populates="processor")
+    activity_logs = relationship("ActivityLog", back_populates="user")

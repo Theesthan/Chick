@@ -15,5 +15,8 @@ class CRUDTransport(CRUDBase[Transport]):
     def get_by_batch(self, db: Session, batch_id: str) -> Transport | None:
         return db.query(Transport).filter(Transport.batch_id == batch_id).first()
 
+    def list_all(self, db: Session, skip: int = 0, limit: int = 100) -> list[Transport]:
+        return db.query(Transport).order_by(Transport.dispatch_time.desc()).offset(skip).limit(limit).all()
+
 
 transport = CRUDTransport(Transport)

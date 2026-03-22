@@ -15,6 +15,7 @@ import ProcessingPage from './pages/ProcessingPage'
 import SalesPage from './pages/SalesPage'
 import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
+import ActivityLogPage from './pages/ActivityLogPage'
 import { ToastProvider } from './components/Toast'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,9 @@ export default function App() {
             } />
             <Route path="/users" element={
               <RequireRole roles={['admin']}><UsersPage /></RequireRole>
+            } />
+            <Route path="/logs" element={
+              <RequireRole roles={['admin']}><ActivityLogPage /></RequireRole>
             } />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -10,3 +10,4 @@ from models.weighing import Weighing  # noqa: F401
 from models.transport import Transport  # noqa: F401
 from models.processing import Processing  # noqa: F401
 from models.sales import Sale  # noqa: F401
+from models.activity_log import ActivityLog  # noqa: F401

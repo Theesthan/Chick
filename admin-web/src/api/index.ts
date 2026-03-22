@@ -2,7 +2,7 @@ import { client } from './client'
 import type {
   TokenResponse, User, Farm, Batch, Procurement, InventoryTransaction,
   InventoryBalance, DailyReport, Weighing, Transport, Processing, Sale,
-  BatchPerformance, BatchProfit,
+  BatchPerformance, BatchProfit, ActivityLog,
 } from '../types'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ export const createWeighing = (data: { batch_id: string; gross_weight: number; t
   client.post<Weighing>('/weighing/', data).then(r => r.data)
 
 // ── Transport ─────────────────────────────────────────────────────────────────
+export const getTransports = () => client.get<Transport[]>('/transport/').then(r => r.data)
 export const getTransport = (id: string) => client.get<Transport>(`/transport/${id}`).then(r => r.data)
 export const createTransport = (data: {
   batch_id: string; vehicle_number: string; driver_name?: string
@@ -80,7 +81,14 @@ export const getProcessing = (batch_id: string) =>
 export const createProcessing = (data: {
   batch_id: string; farm_weight: number; inward_weight: number
   wings_kg: number; legs_kg: number; breast_kg: number; lollipop_kg: number; waste_kg: number
+  shelf_life_days?: number
 }) => client.post<Processing>('/processing/', data).then(r => r.data)
+
+// ── Logs ──────────────────────────────────────────────────────────────────────
+export const getActivityLogs = (skip = 0, limit = 100) =>
+  client.get<ActivityLog[]>('/logs/', { params: { skip, limit } }).then(r => r.data)
+export const getDailySummary = (for_date?: string) =>
+  client.get<{ date: string; count: number; summary: string }>('/logs/summary', { params: { for_date } }).then(r => r.data)
 
 // ── Sales ─────────────────────────────────────────────────────────────────────
 export const getSales = (batch_id?: string) =>

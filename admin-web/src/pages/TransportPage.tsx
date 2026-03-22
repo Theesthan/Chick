@@ -11,6 +11,12 @@ import { getBatches, createTransport, recordArrival } from '../api'
 import { client } from '../api/client'
 import type { Transport, Batch } from '../types'
 
+function nowLocal() {
+  const d = new Date()
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
 export default function TransportPage() {
   const { toast } = useToast()
   const [transports, setTransports] = useState<Transport[]>([])
@@ -20,47 +26,62 @@ export default function TransportPage() {
   const [arrivalOpen, setArrivalOpen] = useState(false)
   const [selected, setSelected] = useState<Transport | null>(null)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ batch_id: '', vehicle_number: '', driver_name: '', origin: '', destination: '', dispatch_time: '' })
-  const [arrivalTime, setArrivalTime] = useState('')
+  const [form, setForm] = useState({ batch_id: '', vehicle_number: '', driver_name: '', origin: '', destination: '', dispatch_time: nowLocal() })
+  const [arrivalTime, setArrivalTime] = useState(nowLocal())
 
-  // Fetch all transports by fetching per batch
   const load = async () => {
-    const [bs] = await Promise.all([getBatches()])
-    setBatches(bs)
-    const tList: Transport[] = []
-    await Promise.all(bs.map(b =>
-      client.get<Transport>(`/transport/${b.id}`).then(r => tList.push(r.data)).catch(() => {})
-    ))
-    setTransports(tList)
-    setLoading(false)
+    try {
+      const [bs, ts] = await Promise.all([
+        getBatches(),
+        client.get<Transport[]>('/transport/').then(r => r.data),
+      ])
+      setBatches(bs)
+      setTransports(ts)
+    } catch {
+      // pass
+    } finally {
+      setLoading(false)
+    }
   }
   useEffect(() => { load() }, [])
 
   const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true)
+    e.preventDefault()
+    if (!form.batch_id) { toast('Select a batch', 'error'); return }
+    if (!form.vehicle_number.trim()) { toast('Enter vehicle number', 'error'); return }
+    if (!form.origin.trim() || !form.destination.trim()) { toast('Enter origin and destination', 'error'); return }
+    setSaving(true)
     try {
       await createTransport({ ...form, driver_name: form.driver_name || undefined })
-      toast('Transport dispatched', 'success'); setOpen(false); load()
+      toast('Transport dispatched', 'success')
+      setOpen(false)
+      setForm({ batch_id: '', vehicle_number: '', driver_name: '', origin: '', destination: '', dispatch_time: nowLocal() })
+      load()
     } catch (err: unknown) {
       toast((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed', 'error')
     } finally { setSaving(false) }
   }
 
   const handleArrival = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!selected) return; setSaving(true)
+    e.preventDefault()
+    if (!selected) return
+    setSaving(true)
     try {
       await recordArrival(selected.id, arrivalTime)
-      toast('Arrival recorded', 'success'); setArrivalOpen(false); load()
+      toast('Arrival recorded', 'success')
+      setArrivalOpen(false)
+      load()
     } catch { toast('Failed', 'error') } finally { setSaving(false) }
   }
 
   const F = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const inTransit = transports.filter(t => !t.arrival_time).length
 
   return (
     <div>
       <PageHeader
         title="Transport"
-        subtitle="Dispatch and arrival tracking"
+        subtitle={`${inTransit} in transit`}
         action={
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setOpen(true)} className="btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" /> New Dispatch
@@ -88,7 +109,7 @@ export default function TransportPage() {
               {
                 key: 'actions', label: '',
                 render: row => !row.arrival_time ? (
-                  <button onClick={() => { setSelected(row); setArrivalTime(''); setArrivalOpen(true) }}
+                  <button onClick={() => { setSelected(row); setArrivalTime(nowLocal()); setArrivalOpen(true) }}
                     className="text-xs text-primary hover:underline">Record Arrival</button>
                 ) : null,
               },

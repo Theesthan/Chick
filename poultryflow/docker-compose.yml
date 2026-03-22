@@ -22,7 +22,7 @@ services:
   api:
     build: .
     container_name: poultryflow_api
-    command: sh -c "mkdir -p alembic/versions && if [ -z \"$(ls alembic/versions/*.py 2>/dev/null)\" ]; then alembic revision --autogenerate -m 'init'; fi && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       - DATABASE_URL=postgresql://poultryflow:poultryflow@db:5432/poultryflow
       - SECRET_KEY=default_insecure_secret_key_change_in_production

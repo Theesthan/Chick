@@ -40,3 +40,7 @@ def get_transport(db: Session, *, transport_id: str) -> Transport:
     if not db_transport:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transport not found")
     return db_transport
+
+
+def list_transports(db: Session, skip: int = 0, limit: int = 100) -> list[Transport]:
+    return transport.list_all(db, skip=skip, limit=limit)

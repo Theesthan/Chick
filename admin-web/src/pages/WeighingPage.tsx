@@ -10,6 +10,10 @@ import { useToast } from '../components/Toast'
 import { getWeighings, createWeighing, getBatches } from '../api'
 import type { Weighing, Batch } from '../types'
 
+function toKg(value: number, unit: 'kg' | 'g'): number {
+  return unit === 'g' ? value / 1000 : value
+}
+
 export default function WeighingPage() {
   const { toast } = useToast()
   const [weighings, setWeighings] = useState<Weighing[]>([])
@@ -17,17 +21,26 @@ export default function WeighingPage() {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ batch_id: '', gross_weight: '', tare_weight: '', notes: '' })
+  const [form, setForm] = useState({ batch_id: '', gross_weight: '', tare_weight: '', unit: 'kg' as 'kg' | 'g', notes: '' })
 
-  const load = () => Promise.all([getWeighings(), getBatches()]).then(([w, b]) => { setWeighings(w); setBatches(b) }).finally(() => setLoading(false))
+  const load = () => Promise.all([getWeighings(), getBatches()])
+    .then(([w, b]) => { setWeighings(w); setBatches(b) })
+    .finally(() => setLoading(false))
   useEffect(() => { load() }, [])
 
-  const net = form.gross_weight && form.tare_weight ? Number(form.gross_weight) - Number(form.tare_weight) : null
+  const grossKg = form.gross_weight ? toKg(Number(form.gross_weight), form.unit) : null
+  const tareKg  = form.tare_weight  ? toKg(Number(form.tare_weight),  form.unit) : null
+  const net = grossKg !== null && tareKg !== null ? grossKg - tareKg : null
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true)
+    e.preventDefault()
+    const gKg = toKg(Number(form.gross_weight), form.unit)
+    const tKg = toKg(Number(form.tare_weight), form.unit)
+    if (tKg >= gKg) { toast('Tare weight must be less than gross weight', 'error'); return }
+    if (gKg <= 0 || tKg < 0) { toast('Weights must be positive', 'error'); return }
+    setSaving(true)
     try {
-      await createWeighing({ batch_id: form.batch_id, gross_weight: Number(form.gross_weight), tare_weight: Number(form.tare_weight), notes: form.notes || undefined })
+      await createWeighing({ batch_id: form.batch_id, gross_weight: gKg, tare_weight: tKg, notes: form.notes || undefined })
       toast('Weighing recorded', 'success'); setOpen(false); load()
     } catch (err: unknown) {
       toast((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed', 'error')
@@ -73,21 +86,41 @@ export default function WeighingPage() {
               {batches.map(b => <option key={b.id} value={b.id}>{b.batch_code} ({b.status})</option>)}
             </select>
           </div>
+
+          {/* Unit selector */}
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Weight Unit</label>
+            <div className="flex gap-2">
+              {(['kg', 'g'] as const).map(u => (
+                <button key={u} type="button"
+                  onClick={() => setForm(p => ({ ...p, unit: u }))}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${form.unit === u ? 'bg-primary/20 border-primary text-primary' : 'border-border text-slate-400 hover:border-slate-500'}`}>
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Gross Weight (kg)</label>
-              <input className="input-field" type="number" step="any" placeholder="6500" value={form.gross_weight} onChange={e => F('gross_weight', e.target.value)} required />
+              <label className="block text-sm text-slate-300 mb-1">Gross Weight ({form.unit})</label>
+              <input className="input-field" type="number" step="any" min="0.001" placeholder={form.unit === 'kg' ? '6500' : '6500000'}
+                value={form.gross_weight} onChange={e => F('gross_weight', e.target.value)} required />
             </div>
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Tare Weight (kg)</label>
-              <input className="input-field" type="number" step="any" placeholder="500" value={form.tare_weight} onChange={e => F('tare_weight', e.target.value)} required />
+              <label className="block text-sm text-slate-300 mb-1">Tare / Cage Weight ({form.unit})</label>
+              <input className="input-field" type="number" step="any" min="0" placeholder={form.unit === 'kg' ? '500' : '500000'}
+                value={form.tare_weight} onChange={e => F('tare_weight', e.target.value)} required />
             </div>
           </div>
           {net !== null && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="bg-green-950/50 border border-green-500/30 rounded-xl p-4 text-center">
+              className={`border rounded-xl p-4 text-center ${net < 0 ? 'bg-red-950/50 border-red-500/30' : 'bg-green-950/50 border-green-500/30'}`}>
               <p className="text-sm text-muted">Net Weight</p>
-              <p className="text-3xl font-bold text-green-400">{net.toFixed(2)} <span className="text-base font-normal">kg</span></p>
+              <p className={`text-3xl font-bold ${net < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {net < 0 ? '⚠ Invalid' : `${net.toFixed(3)} kg`}
+              </p>
+              {net < 0 && <p className="text-xs text-red-400 mt-1">Tare must be less than gross</p>}
             </motion.div>
           )}
           <div>
@@ -96,7 +129,7 @@ export default function WeighingPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setOpen(false)} className="btn-secondary flex-1">Cancel</button>
-            <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn-primary flex-1">
+            <motion.button type="submit" disabled={saving || (net !== null && net < 0)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn-primary flex-1">
               {saving ? 'Saving…' : 'Record'}
             </motion.button>
           </div>
