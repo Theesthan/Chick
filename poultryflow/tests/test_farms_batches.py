@@ -62,3 +62,28 @@ def test_supervisor_cannot_create_farm(client, sup_headers):
         "gps_lat": 0, "gps_lng": 0, "capacity": 1
     }, headers=sup_headers)
     assert r.status_code == 403
+
+
+def test_batch_exceeds_farm_capacity_rejected(client, auth_headers, farm):
+    """Total chick count across active batches must not exceed farm capacity (5000)."""
+    # farm already has no batches; try to add 5001 chicks — should fail
+    r = client.post("/batches/", json={
+        "farm_id": farm["id"], "batch_code": "BIG-BATCH",
+        "chick_count": 5001, "start_date": "2026-01-01"
+    }, headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_batch_cumulative_capacity_exceeded(client, auth_headers, farm):
+    """Sum of active batch chick counts must not exceed farm capacity."""
+    # First batch: 3000 chicks (within 5000 capacity)
+    client.post("/batches/", json={
+        "farm_id": farm["id"], "batch_code": "BATCH-CAP-A",
+        "chick_count": 3000, "start_date": "2026-01-01"
+    }, headers=auth_headers)
+    # Second batch: 2001 chicks — 3000+2001=5001 > 5000 → should be rejected
+    r = client.post("/batches/", json={
+        "farm_id": farm["id"], "batch_code": "BATCH-CAP-B",
+        "chick_count": 2001, "start_date": "2026-01-01"
+    }, headers=auth_headers)
+    assert r.status_code == 400

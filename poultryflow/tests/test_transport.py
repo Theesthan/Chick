@@ -61,3 +61,12 @@ def test_duplicate_transport_per_batch_rejected(client, auth_headers, batch, tra
         "dispatch_time": "2026-03-02T08:00:00"
     }, headers=auth_headers)
     assert r.status_code == 400
+
+
+def test_supervisor_can_record_arrival(client, sup_headers, transport):
+    """Supervisor role must be able to record transport arrival."""
+    r = client.patch(f"/transport/{transport['id']}/arrival",
+                     json={"arrival_time": "2026-03-01T14:00:00"},
+                     headers=sup_headers)
+    assert r.status_code == 200
+    assert r.json()["arrival_time"] is not None

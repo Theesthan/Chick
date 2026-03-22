@@ -37,7 +37,7 @@ def record_arrival(
     transport_id: str,
     update_in: TransportArrivalUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.operator))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     result = transport_service.record_arrival(db, transport_id=transport_id, update_in=update_in)
     al.log(db, action="record_arrival", user_id=current_user.id, entity="transport",

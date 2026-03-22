@@ -62,7 +62,7 @@ export const verifyReport = (id: string, status: string, rejection_reason?: stri
 // ── Weighing ──────────────────────────────────────────────────────────────────
 export const getWeighings = (batch_id?: string) =>
   client.get<Weighing[]>('/weighing/', { params: { batch_id } }).then(r => r.data)
-export const createWeighing = (data: { batch_id: string; gross_weight: number; tare_weight: number; notes?: string }) =>
+export const createWeighing = (data: { batch_id: string; gross_weight: number; tare_weight: number; mortality?: number; notes?: string }) =>
   client.post<Weighing>('/weighing/', data).then(r => r.data)
 
 // ── Transport ─────────────────────────────────────────────────────────────────

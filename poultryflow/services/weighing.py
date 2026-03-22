@@ -1,9 +1,14 @@
+import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from crud.weighing import weighing
 from crud.batch import batch
+from crud.inventory import inventory
 from schemas.weighing import WeighingCreate
 from models.weighing import Weighing
+from models.inventory import TransactionType
+
+logger = logging.getLogger(__name__)
 
 
 def record_weighing(db: Session, *, weighing_in: WeighingCreate, user_id: str) -> Weighing:
@@ -17,7 +22,28 @@ def record_weighing(db: Session, *, weighing_in: WeighingCreate, user_id: str) -
             detail="Invalid weight: Tare weight must be less than gross weight",
         )
 
-    return weighing.create_with_recorder(db, obj_in=weighing_in, recorded_by=user_id)
+    db_weighing = weighing.create_with_recorder(db, obj_in=weighing_in, recorded_by=user_id)
+
+    # Auto-deduct mortality from chick inventory if recorded
+    if weighing_in.mortality > 0:
+        try:
+            current_balance = inventory.get_latest_balance(db, item_type="chicks")
+            if current_balance >= weighing_in.mortality:
+                from models.inventory import InventoryTransaction
+                txn = InventoryTransaction(
+                    item_type="chicks",
+                    transaction_type=TransactionType.issue,
+                    quantity=weighing_in.mortality,
+                    balance_after=current_balance - weighing_in.mortality,
+                    batch_id=weighing_in.batch_id,
+                    notes=f"Mortality at harvest — weighing {db_weighing.id[:8]}",
+                )
+                db.add(txn)
+                db.commit()
+        except Exception as exc:
+            logger.warning("Could not auto-deduct mortality from inventory: %s", exc)
+
+    return db_weighing
 
 
 def list_weighings(db: Session, batch_id: str | None = None, skip: int = 0, limit: int = 50) -> list[Weighing]:

@@ -21,7 +21,7 @@ export default function WeighingPage() {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ batch_id: '', gross_weight: '', tare_weight: '', unit: 'kg' as 'kg' | 'g', notes: '' })
+  const [form, setForm] = useState({ batch_id: '', gross_weight: '', tare_weight: '', unit: 'kg' as 'kg' | 'g', mortality: '0', notes: '' })
 
   const load = () => Promise.all([getWeighings(), getBatches()])
     .then(([w, b]) => { setWeighings(w); setBatches(b) })
@@ -38,16 +38,20 @@ export default function WeighingPage() {
     const tKg = toKg(Number(form.tare_weight), form.unit)
     if (tKg >= gKg) { toast('Tare weight must be less than gross weight', 'error'); return }
     if (gKg <= 0 || tKg < 0) { toast('Weights must be positive', 'error'); return }
+    const mortality = Number(form.mortality)
+    if (mortality < 0) { toast('Mortality cannot be negative', 'error'); return }
     setSaving(true)
     try {
-      await createWeighing({ batch_id: form.batch_id, gross_weight: gKg, tare_weight: tKg, notes: form.notes || undefined })
-      toast('Weighing recorded', 'success'); setOpen(false); load()
+      await createWeighing({ batch_id: form.batch_id, gross_weight: gKg, tare_weight: tKg, mortality, notes: form.notes || undefined })
+      toast('Weighing recorded', 'success'); setOpen(false); reset(); load()
     } catch (err: unknown) {
       toast((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed', 'error')
     } finally { setSaving(false) }
   }
 
   const F = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  const reset = () => setForm({ batch_id: '', gross_weight: '', tare_weight: '', unit: 'kg', mortality: '0', notes: '' })
 
   return (
     <div>
@@ -70,6 +74,7 @@ export default function WeighingPage() {
               { key: 'gross_weight', label: 'Gross (kg)', render: r => r.gross_weight.toFixed(2) },
               { key: 'tare_weight', label: 'Tare (kg)', render: r => r.tare_weight.toFixed(2) },
               { key: 'net_weight', label: 'Net (kg)', render: r => <span className="font-semibold text-green-400">{r.net_weight.toFixed(2)}</span> },
+              { key: 'mortality', label: 'Mortality', render: r => r.mortality > 0 ? <span className="text-red-400 font-medium">{r.mortality} birds</span> : <span className="text-slate-500">—</span> },
               { key: 'notes', label: 'Notes', render: r => r.notes ?? '—' },
               { key: 'created_at', label: 'Date', render: r => new Date(r.created_at).toLocaleDateString() },
             ]}
@@ -123,6 +128,11 @@ export default function WeighingPage() {
               {net < 0 && <p className="text-xs text-red-400 mt-1">Tare must be less than gross</p>}
             </motion.div>
           )}
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Mortality (birds)</label>
+            <input className="input-field" type="number" min="0" placeholder="0" value={form.mortality} onChange={e => F('mortality', e.target.value)} />
+            <p className="text-xs text-muted mt-1">Birds that died at harvest — auto-deducted from inventory</p>
+          </div>
           <div>
             <label className="block text-sm text-slate-300 mb-1">Notes (optional)</label>
             <input className="input-field" placeholder="Harvest day 1…" value={form.notes} onChange={e => F('notes', e.target.value)} />

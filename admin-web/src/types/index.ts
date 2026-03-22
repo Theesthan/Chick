@@ -86,6 +86,7 @@ export interface Weighing {
   gross_weight: number
   tare_weight: number
   net_weight: number
+  mortality: number
   notes: string | null
   recorded_by: string
   created_at: string

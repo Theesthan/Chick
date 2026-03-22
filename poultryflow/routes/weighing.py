@@ -12,7 +12,7 @@ router = APIRouter()
 def record_weighing(
     weighing_in: WeighingCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
 ):
     return weighing_service.record_weighing(db, weighing_in=weighing_in, user_id=current_user.id)
 

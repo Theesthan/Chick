@@ -7,9 +7,9 @@ import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import { TableSkeleton } from '../components/SkeletonLoader'
 import { useToast } from '../components/Toast'
-import { getBatches, createTransport, recordArrival } from '../api'
+import { getBatches, getFarms, createTransport, recordArrival } from '../api'
 import { client } from '../api/client'
-import type { Transport, Batch } from '../types'
+import type { Transport, Batch, Farm } from '../types'
 
 function nowLocal() {
   const d = new Date()
@@ -21,6 +21,7 @@ export default function TransportPage() {
   const { toast } = useToast()
   const [transports, setTransports] = useState<Transport[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
+  const [farms, setFarms] = useState<Farm[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [arrivalOpen, setArrivalOpen] = useState(false)
@@ -31,11 +32,13 @@ export default function TransportPage() {
 
   const load = async () => {
     try {
-      const [bs, ts] = await Promise.all([
+      const [bs, fs, ts] = await Promise.all([
         getBatches(),
+        getFarms(),
         client.get<Transport[]>('/transport/').then(r => r.data),
       ])
       setBatches(bs)
+      setFarms(fs)
       setTransports(ts)
     } catch {
       // pass
@@ -56,6 +59,7 @@ export default function TransportPage() {
       toast('Transport dispatched', 'success')
       setOpen(false)
       setForm({ batch_id: '', vehicle_number: '', driver_name: '', origin: '', destination: '', dispatch_time: nowLocal() })
+
       load()
     } catch (err: unknown) {
       toast((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed', 'error')
@@ -75,6 +79,12 @@ export default function TransportPage() {
   }
 
   const F = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  const handleBatchChange = (batchId: string) => {
+    const selectedBatch = batches.find(b => b.id === batchId)
+    const farm = selectedBatch ? farms.find(f => f.id === selectedBatch.farm_id) : null
+    setForm(p => ({ ...p, batch_id: batchId, origin: farm ? farm.name : p.origin }))
+  }
   const inTransit = transports.filter(t => !t.arrival_time).length
 
   return (
@@ -123,7 +133,7 @@ export default function TransportPage() {
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
             <label className="block text-sm text-slate-300 mb-1">Batch</label>
-            <select className="input-field" value={form.batch_id} onChange={e => F('batch_id', e.target.value)} required>
+            <select className="input-field" value={form.batch_id} onChange={e => handleBatchChange(e.target.value)} required>
               <option value="">Select batch…</option>
               {batches.map(b => <option key={b.id} value={b.id}>{b.batch_code} ({b.status})</option>)}
             </select>
@@ -140,12 +150,21 @@ export default function TransportPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Origin</label>
-              <input className="input-field" placeholder="Farm name" value={form.origin} onChange={e => F('origin', e.target.value)} required />
+              <label className="block text-sm text-slate-300 mb-1">Origin (Farm)</label>
+              <select className="input-field" value={form.origin} onChange={e => F('origin', e.target.value)} required>
+                <option value="">Select farm…</option>
+                {farms.map(f => <option key={f.id} value={f.name}>{f.name} — {f.location}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm text-slate-300 mb-1">Destination</label>
-              <input className="input-field" placeholder="Processing plant" value={form.destination} onChange={e => F('destination', e.target.value)} required />
+              <select className="input-field" value={form.destination} onChange={e => F('destination', e.target.value)} required>
+                <option value="">Select destination…</option>
+                <option value="Processing Plant A">Processing Plant A</option>
+                <option value="Processing Plant B">Processing Plant B</option>
+                <option value="Cold Storage">Cold Storage</option>
+                <option value="Distribution Center">Distribution Center</option>
+              </select>
             </div>
           </div>
           <div>
