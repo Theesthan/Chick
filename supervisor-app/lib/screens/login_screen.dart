@@ -37,7 +37,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!ok && mounted) {
       _shakeCtrl.forward(from: 0);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid email or password'), backgroundColor: Color(0xFFEF4444)),
+        SnackBar(
+          content: Text(auth.error ?? 'Login failed'),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
       );
     }
   }
