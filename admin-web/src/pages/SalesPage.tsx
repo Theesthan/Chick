@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
@@ -20,7 +21,8 @@ export default function SalesPage() {
   const [form, setForm] = useState({ batch_id: '', buyer_name: '', total_weight: '', price_per_kg: '', sold_at: '', notes: '' })
 
   const load = () => Promise.all([getSales(), getBatches()]).then(([s, b]) => { setSales(s); setBatches(b) }).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const totalRevenue = sales.reduce((s, x) => s + x.total_amount, 0)
   const preview = form.total_weight && form.price_per_kg ? Number(form.total_weight) * Number(form.price_per_kg) : null

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin } from 'lucide-react'
+import { Plus, MapPin, LocateFixed } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
@@ -8,6 +8,7 @@ import Modal from '../components/Modal'
 import { TableSkeleton } from '../components/SkeletonLoader'
 import { useToast } from '../components/Toast'
 import { getFarms, createFarm, updateFarm } from '../api'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import type { Farm } from '../types'
 
 export default function FarmsPage() {
@@ -17,10 +18,26 @@ export default function FarmsPage() {
   const [open, setOpen] = useState(false)
   const [editFarm, setEditFarm] = useState<Farm | null>(null)
   const [saving, setSaving] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [form, setForm] = useState({ site_id: '', name: '', location: '', gps_lat: '', gps_lng: '', capacity: '' })
 
   const load = () => getFarms().then(setFarms).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) { toast('GPS not supported in this browser', 'error'); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        F('gps_lat', String(pos.coords.latitude))
+        F('gps_lng', String(pos.coords.longitude))
+        setLocating(false)
+      },
+      () => { toast('Location access denied or unavailable', 'error'); setLocating(false) },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
 
   const openCreate = () => { setEditFarm(null); setForm({ site_id: '', name: '', location: '', gps_lat: '', gps_lng: '', capacity: '' }); setOpen(true) }
   const openEdit = (f: Farm) => { setEditFarm(f); setForm({ site_id: f.site_id, name: f.name, location: f.location, gps_lat: String(f.gps_lat), gps_lng: String(f.gps_lng), capacity: String(f.capacity) }); setOpen(true) }
@@ -50,7 +67,7 @@ export default function FarmsPage() {
         title="Farms"
         subtitle={`${farms.length} farm${farms.length !== 1 ? 's' : ''} registered`}
         action={
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={openCreate}
+          <motion.button type="button" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={openCreate}
             className="btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add Farm
           </motion.button>
@@ -101,15 +118,24 @@ export default function FarmsPage() {
             <input className="input-field" placeholder="123 Farm Road, City" value={form.location} onChange={e => F('location', e.target.value)} required />
           </div>
           {!editFarm && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-slate-300 mb-1">GPS Lat</label>
-                <input className="input-field" type="number" step="any" placeholder="12.9716" value={form.gps_lat} onChange={e => F('gps_lat', e.target.value)} required />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm text-slate-300">GPS Coordinates</label>
+                <button type="button" onClick={detectLocation} disabled={locating}
+                  className="flex items-center gap-1 text-xs text-primary hover:text-blue-300 disabled:opacity-50 transition-colors">
+                  <LocateFixed className="w-3 h-3" />
+                  {locating ? 'Detecting…' : 'Use My Location'}
+                </button>
               </div>
-              <div>
-                <label className="block text-sm text-slate-300 mb-1">GPS Lng</label>
-                <input className="input-field" type="number" step="any" placeholder="77.5946" value={form.gps_lng} onChange={e => F('gps_lng', e.target.value)} required />
+              <div className="grid grid-cols-2 gap-3">
+                <input className="input-field" type="number" step="any" placeholder="Latitude (12.9716)" value={form.gps_lat} onChange={e => F('gps_lat', e.target.value)} required />
+                <input className="input-field" type="number" step="any" placeholder="Longitude (77.5946)" value={form.gps_lng} onChange={e => F('gps_lng', e.target.value)} required />
               </div>
+              {form.gps_lat && form.gps_lng && (
+                <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> {Number(form.gps_lat).toFixed(5)}, {Number(form.gps_lng).toFixed(5)}
+                </p>
+              )}
             </div>
           )}
           <div className="flex gap-3 pt-2">

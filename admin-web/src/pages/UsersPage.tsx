@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
@@ -25,7 +26,8 @@ export default function UsersPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'supervisor' })
 
   const load = () => getUsers().then(setUsers).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true)

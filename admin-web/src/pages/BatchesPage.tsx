@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
@@ -29,7 +30,8 @@ export default function BatchesPage() {
   const [newStatus, setNewStatus] = useState<BatchStatus>('active')
 
   const load = () => Promise.all([getBatches(), getFarms()]).then(([b, f]) => { setBatches(b); setFarms(f) }).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true)
@@ -74,7 +76,7 @@ export default function BatchesPage() {
               {
                 key: 'actions', label: '',
                 render: row => (
-                  <button onClick={() => { setSelected(row); setNewStatus(row.status); setStatusOpen(true) }}
+                  <button type="button" onClick={() => { setSelected(row); setNewStatus(row.status); setStatusOpen(true) }}
                     className="text-xs text-primary hover:underline">Update Status</button>
                 ),
               },
@@ -87,8 +89,8 @@ export default function BatchesPage() {
       <Modal open={open} onClose={() => setOpen(false)} title="New Batch">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Farm</label>
-            <select className="input-field" value={form.farm_id} onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} required>
+            <label className="block text-sm text-slate-300 mb-1" htmlFor="batch-farm">Farm</label>
+            <select id="batch-farm" className="input-field" value={form.farm_id} onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} required>
               <option value="">Select farm…</option>
               {farms.map(f => <option key={f.id} value={f.id}>{f.name} ({f.site_id})</option>)}
             </select>
@@ -104,8 +106,8 @@ export default function BatchesPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Start Date</label>
-            <input className="input-field" type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} required />
+            <label className="block text-sm text-slate-300 mb-1" htmlFor="batch-start-date">Start Date</label>
+            <input id="batch-start-date" className="input-field" type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} required />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setOpen(false)} className="btn-secondary flex-1">Cancel</button>
@@ -120,8 +122,8 @@ export default function BatchesPage() {
       <Modal open={statusOpen} onClose={() => setStatusOpen(false)} title={`Update: ${selected?.batch_code}`} size="sm">
         <form onSubmit={handleStatus} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Status</label>
-            <select className="input-field" value={newStatus} onChange={e => setNewStatus(e.target.value as BatchStatus)}>
+            <label className="block text-sm text-slate-300 mb-1" htmlFor="batch-status">Status</label>
+            <select id="batch-status" className="input-field" value={newStatus} onChange={e => setNewStatus(e.target.value as BatchStatus)}>
               <option value="active">Active</option>
               <option value="harvested">Harvested</option>
               <option value="closed">Closed</option>

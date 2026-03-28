@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
@@ -30,7 +31,8 @@ export default function ProcurementPage() {
   const [form, setForm] = useState({ item_type: 'feed', quantity: '', unit: 'kg', unit_price: '', supplier: '', purchased_at: '' })
 
   const load = () => getProcurements().then(setItems).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true)

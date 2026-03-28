@@ -6,6 +6,7 @@ import CounterCard from '../components/CounterCard'
 import AnimatedCard from '../components/AnimatedCard'
 import { CardSkeleton } from '../components/SkeletonLoader'
 import { getFarms, getBatches, getSales, getDailyReports } from '../api'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import type { Farm, Batch, Sale, DailyReport } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -21,11 +22,12 @@ export default function DashboardPage() {
   const [reports, setReports] = useState<DailyReport[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    Promise.all([getFarms(), getBatches(), getSales(), getDailyReports()])
-      .then(([f, b, s, r]) => { setFarms(f); setBatches(b); setSales(s); setReports(r) })
-      .finally(() => setLoading(false))
-  }, [])
+  const load = () => Promise.all([getFarms(), getBatches(), getSales(), getDailyReports()])
+    .then(([f, b, s, r]) => { setFarms(f); setBatches(b); setSales(s); setReports(r) })
+    .finally(() => setLoading(false))
+
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const totalRevenue = sales.reduce((s, x) => s + x.total_amount, 0)
   const activeBatches = batches.filter(b => b.status === 'active').length

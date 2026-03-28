@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
 import { useToast } from '../components/Toast'
 import { getBatches, createProcessing, getProcessing } from '../api'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import type { Batch, Processing } from '../types'
 
 const BREAKDOWN_FIELDS = [
@@ -93,7 +94,9 @@ export default function ProcessingPage() {
     shelf_life_days: '3',
   })
 
-  useEffect(() => { getBatches().then(setBatches) }, [])
+  const loadBatches = () => getBatches().then(setBatches)
+  useEffect(() => { loadBatches() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(loadBatches)
 
   const F = (k: keyof Form, v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -232,42 +235,48 @@ export default function ProcessingPage() {
         <AnimatedCard delay={0.2} className="p-6" hover={false}>
           <h2 className="font-semibold text-slate-200 mb-6">Weight Breakdown</h2>
 
-          {inward > 0 ? (
-            <div className="space-y-5">
-              {BREAKDOWN_FIELDS.map(({ key, label, color }) => (
-                <AnimatedBar key={key} value={Number(form[key]) || 0} max={inward} color={color} label={label} />
-              ))}
+          {(() => {
+            // Use inward weight as the scale reference; fall back to total breakdown so
+            // bars render as soon as the user starts entering values.
+            const scale = Math.max(inward, totalBreakdown) || 1
+            const hasAny = totalBreakdown > 0 || inward > 0
+            return hasAny ? (
+              <div className="space-y-5">
+                {BREAKDOWN_FIELDS.map(({ key, label, color }) => (
+                  <AnimatedBar key={key} value={Number(form[key as keyof typeof form]) || 0} max={scale} color={color} label={label} />
+                ))}
 
-              <div className="mt-6 pt-4 border-t border-border">
-                <p className="text-xs text-muted mb-3">Distribution</p>
-                <div className="h-4 rounded-full overflow-hidden flex">
-                  {BREAKDOWN_FIELDS.map(({ key, color }) => {
-                    const pct = inward > 0 ? (Number(form[key]) / inward) * 100 : 0
-                    return pct > 0 ? (
-                      <motion.div key={key} style={{ backgroundColor: color, width: `${pct}%` }}
-                        initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
-                    ) : null
-                  })}
-                  {inward > totalBreakdown && (
-                    <div style={{ width: `${((inward - totalBreakdown) / inward) * 100}%` }} className="bg-slate-600" />
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-3 mt-3">
-                  {BREAKDOWN_FIELDS.map(({ key, label, color }) => (
-                    <div key={key} className="flex items-center gap-1.5 text-xs text-muted">
-                      <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
-                      {label}
-                    </div>
-                  ))}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <p className="text-xs text-muted mb-3">Distribution</p>
+                  <div className="h-4 rounded-full overflow-hidden flex">
+                    {BREAKDOWN_FIELDS.map(({ key, color }) => {
+                      const pct = (Number(form[key as keyof typeof form]) / scale) * 100
+                      return pct > 0 ? (
+                        <motion.div key={key} style={{ backgroundColor: color, width: `${pct}%` }}
+                          initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
+                      ) : null
+                    })}
+                    {scale > totalBreakdown && (
+                      <div style={{ width: `${((scale - totalBreakdown) / scale) * 100}%` }} className="bg-slate-600" />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    {BREAKDOWN_FIELDS.map(({ key, label, color }) => (
+                      <div key={key} className="flex items-center gap-1.5 text-xs text-muted">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
+                        {label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="h-48 flex flex-col items-center justify-center text-muted text-sm gap-2">
-              <Factory className="w-8 h-8 opacity-30" />
-              Enter inward weight and breakdown to see visualisation
-            </div>
-          )}
+            ) : (
+              <div className="h-48 flex flex-col items-center justify-center text-muted text-sm gap-2">
+                <Factory className="w-8 h-8 opacity-30" />
+                Enter inward weight and breakdown values to see visualisation
+              </div>
+            )
+          })()}
         </AnimatedCard>
       </div>
     </div>

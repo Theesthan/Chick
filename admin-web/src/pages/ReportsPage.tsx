@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BarChart3, TrendingUp, Search } from 'lucide-react'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts'
@@ -6,8 +6,8 @@ import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
 import { useToast } from '../components/Toast'
 import { getBatches, getBatchPerformance, getBatchProfit } from '../api'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import type { Batch, BatchPerformance, BatchProfit } from '../types'
-import { useEffect } from 'react'
 
 export default function ReportsPage() {
   const { toast } = useToast()
@@ -17,7 +17,9 @@ export default function ReportsPage() {
   const [profit, setProfit] = useState<BatchProfit | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { getBatches().then(setBatches) }, [])
+  const loadBatches = () => getBatches().then(setBatches)
+  useEffect(() => { loadBatches() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(loadBatches)
 
   const handleLoad = async () => {
     if (!batchId) return

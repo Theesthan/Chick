@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { Plus, ArrowDown, ArrowUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
@@ -37,7 +38,8 @@ export default function InventoryPage() {
     ])
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true)

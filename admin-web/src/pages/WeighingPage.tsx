@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
 import AnimatedCard from '../components/AnimatedCard'
@@ -26,7 +27,8 @@ export default function WeighingPage() {
   const load = () => Promise.all([getWeighings(), getBatches()])
     .then(([w, b]) => { setWeighings(w); setBatches(b) })
     .finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const grossKg = form.gross_weight ? toKg(Number(form.gross_weight), form.unit) : null
   const tareKg  = form.tare_weight  ? toKg(Number(form.tare_weight),  form.unit) : null
@@ -85,8 +87,8 @@ export default function WeighingPage() {
       <Modal open={open} onClose={() => setOpen(false)} title="Record Weighing">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Batch</label>
-            <select className="input-field" value={form.batch_id} onChange={e => F('batch_id', e.target.value)} required>
+            <label className="block text-sm text-slate-300 mb-1" htmlFor="weigh-batch">Batch</label>
+            <select id="weigh-batch" className="input-field" value={form.batch_id} onChange={e => F('batch_id', e.target.value)} required>
               <option value="">Select batch…</option>
               {batches.map(b => <option key={b.id} value={b.id}>{b.batch_code} ({b.status})</option>)}
             </select>

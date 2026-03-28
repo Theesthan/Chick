@@ -18,7 +18,7 @@ const allNav = [
   { path: '/transport',     label: 'Transport',       icon: Truck,           roles: ['admin','supervisor','operator'] },
   { path: '/processing',    label: 'Processing',      icon: Factory,         roles: ['admin','operator'] },
   { path: '/sales',         label: 'Sales',           icon: TrendingUp,      roles: ['admin'] },
-  { path: '/reports',       label: 'Reports',         icon: BarChart3,       roles: ['admin','supervisor'] },
+  { path: '/reports',       label: 'Reports',         icon: BarChart3,       roles: ['admin'] },
   { path: '/users',         label: 'Users',           icon: Users,           roles: ['admin'] },
   { path: '/logs',          label: 'Activity Logs',   icon: Activity,        roles: ['admin'] },
 ]
