@@ -79,8 +79,9 @@ export const recordArrival = (id: string, arrival_time: string) =>
 export const getProcessing = (batch_id: string) =>
   client.get<Processing>(`/processing/${batch_id}`).then(r => r.data)
 export const createProcessing = (data: {
-  batch_id: string; farm_weight: number; inward_weight: number
-  wings_kg: number; legs_kg: number; breast_kg: number; lollipop_kg: number; waste_kg: number
+  batch_id: string; inward_weight: number
+  wings_kg: number; legs_kg: number; breast_kg: number
+  skinless_curry_cut_kg: number; lollipop_kg: number; waste_kg: number
   shelf_life_days?: number
 }) => client.post<Processing>('/processing/', data).then(r => r.data)
 

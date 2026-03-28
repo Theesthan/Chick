@@ -8,22 +8,23 @@ import { getBatches, createProcessing, getProcessing } from '../api'
 import type { Batch, Processing } from '../types'
 
 const BREAKDOWN_FIELDS = [
-  { key: 'wings_kg',    label: 'Wings',    color: '#f59e0b' },
-  { key: 'legs_kg',     label: 'Legs',     color: '#3b82f6' },
-  { key: 'breast_kg',   label: 'Breast',   color: '#10b981' },
-  { key: 'lollipop_kg', label: 'Lollipop', color: '#8b5cf6' },
-  { key: 'waste_kg',    label: 'Waste',    color: '#ef4444' },
+  { key: 'wings_kg',              label: 'Wings',               color: '#f59e0b' },
+  { key: 'legs_kg',               label: 'Legs',                color: '#3b82f6' },
+  { key: 'breast_kg',             label: 'Breast',              color: '#10b981' },
+  { key: 'skinless_curry_cut_kg', label: 'Skinless Curry Cut',  color: '#06b6d4' },
+  { key: 'lollipop_kg',           label: 'Lollipop',            color: '#8b5cf6' },
+  { key: 'waste_kg',              label: 'Waste',               color: '#ef4444' },
 ] as const
 
 type BreakdownKey = typeof BREAKDOWN_FIELDS[number]['key']
 
 interface Form {
   batch_id: string
-  farm_weight: string
   inward_weight: string
   wings_kg: string
   legs_kg: string
   breast_kg: string
+  skinless_curry_cut_kg: string
   lollipop_kg: string
   waste_kg: string
   shelf_life_days: string
@@ -87,8 +88,8 @@ export default function ProcessingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Form>({
-    batch_id: '', farm_weight: '', inward_weight: '',
-    wings_kg: '0', legs_kg: '0', breast_kg: '0', lollipop_kg: '0', waste_kg: '0',
+    batch_id: '', inward_weight: '',
+    wings_kg: '0', legs_kg: '0', breast_kg: '0', skinless_curry_cut_kg: '0', lollipop_kg: '0', waste_kg: '0',
     shelf_life_days: '3',
   })
 
@@ -104,14 +105,10 @@ export default function ProcessingPage() {
 
   const totalBreakdown = BREAKDOWN_FIELDS.reduce((s, f) => s + (Number(form[f.key]) || 0), 0)
   const inward = Number(form.inward_weight) || 0
-  const farmW = Number(form.farm_weight) || 0
-  const loss = farmW - inward
-  const lossColor = loss > 0 ? (loss / (farmW || 1)) > 0.1 ? 'text-red-400' : 'text-amber-400' : 'text-green-400'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (farmW <= 0 || inward <= 0) { toast('Weights must be positive', 'error'); return }
-    if (inward > farmW) { toast('Inward weight cannot exceed farm weight', 'error'); return }
+    if (inward <= 0) { toast('Inward weight must be positive', 'error'); return }
     if (totalBreakdown > inward + 0.01) {
       toast(`Breakdown total (${totalBreakdown.toFixed(2)} kg) exceeds inward weight (${inward} kg)`, 'error')
       return
@@ -122,11 +119,11 @@ export default function ProcessingPage() {
     try {
       await createProcessing({
         batch_id: form.batch_id,
-        farm_weight: farmW,
         inward_weight: inward,
         wings_kg: Number(form.wings_kg),
         legs_kg: Number(form.legs_kg),
         breast_kg: Number(form.breast_kg),
+        skinless_curry_cut_kg: Number(form.skinless_curry_cut_kg),
         lollipop_kg: Number(form.lollipop_kg),
         waste_kg: Number(form.waste_kg),
         shelf_life_days: shelfDays,
@@ -158,7 +155,7 @@ export default function ProcessingPage() {
                   <CheckCircle className="w-16 h-16 text-green-400" />
                 </motion.div>
                 <p className="text-lg font-semibold text-slate-200">Processing Recorded!</p>
-                <button onClick={() => { setSubmitted(false); setExisting(null); setForm({ batch_id: '', farm_weight: '', inward_weight: '', wings_kg: '0', legs_kg: '0', breast_kg: '0', lollipop_kg: '0', waste_kg: '0', shelf_life_days: '3' }) }}
+                <button onClick={() => { setSubmitted(false); setExisting(null); setForm({ batch_id: '', inward_weight: '', wings_kg: '0', legs_kg: '0', breast_kg: '0', skinless_curry_cut_kg: '0', lollipop_kg: '0', waste_kg: '0', shelf_life_days: '3' }) }}
                   className="btn-secondary mt-2">Record Another</button>
               </motion.div>
             ) : existing ? (
@@ -186,25 +183,11 @@ export default function ProcessingPage() {
                 </div>
 
                 {/* Weights */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">Farm Weight (kg)</label>
-                    <input className="input-field" type="number" step="any" min="0.01" placeholder="6000" value={form.farm_weight} onChange={e => F('farm_weight', e.target.value)} required />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">Inward Weight (kg)</label>
-                    <input className="input-field" type="number" step="any" min="0.01" placeholder="5900" value={form.inward_weight} onChange={e => F('inward_weight', e.target.value)} required />
-                  </div>
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">Inward Weight (kg)</label>
+                  <input className="input-field" type="number" step="any" min="0.01" placeholder="5900" value={form.inward_weight} onChange={e => F('inward_weight', e.target.value)} required />
+                  <p className="text-xs text-muted mt-1">Farm weight is auto-calculated from weighing records</p>
                 </div>
-
-                {/* Loss indicator */}
-                {form.farm_weight && form.inward_weight && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-between items-center bg-slate-800/60 rounded-xl px-4 py-3 text-sm">
-                    <span className="text-muted">Transit Loss</span>
-                    <span className={`font-semibold ${lossColor}`}>{loss.toFixed(2)} kg ({farmW ? ((loss / farmW) * 100).toFixed(1) : 0}%)</span>
-                  </motion.div>
-                )}
 
                 {/* Shelf Life */}
                 <div>

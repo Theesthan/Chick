@@ -113,6 +113,7 @@ export interface Processing {
   wings_kg: number
   legs_kg: number
   breast_kg: number
+  skinless_curry_cut_kg: number
   lollipop_kg: number
   waste_kg: number
   shelf_life_days: number
@@ -156,8 +157,12 @@ export interface BatchPerformance {
 export interface BatchProfit {
   batch_id: string
   total_revenue: number
-  total_costs_estimated: number
-  net_profit_estimated: number
+  chick_procurement_cost: number
+  feed_cost: number
+  medicine_cost: number
+  transport_cost: number
+  total_costs: number
+  net_profit: number
 }
 
 export interface TokenResponse {

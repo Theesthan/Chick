@@ -104,21 +104,22 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-4">
               <div className="bg-green-950/50 border border-green-500/20 rounded-2xl p-6 text-center">
-                <p className="text-sm text-muted mb-2">Net Profit (Estimated)</p>
+                <p className="text-sm text-muted mb-2">Net Profit</p>
                 <motion.p
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="text-4xl font-bold text-green-400"
+                  className={`text-4xl font-bold ${profit.net_profit >= 0 ? 'text-green-400' : 'text-red-400'}`}
                 >
-                  ₹{profit.net_profit_estimated.toLocaleString()}
+                  ₹{profit.net_profit.toLocaleString()}
                 </motion.p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Metric label="Total Revenue" value={`₹${profit.total_revenue.toLocaleString()}`} color="text-green-400" />
-                <Metric label="Est. Costs" value={`₹${profit.total_costs_estimated.toLocaleString()}`} color="text-red-400" />
-              </div>
-              <div className="bg-amber-950/30 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-400/80">
-                ℹ️ Cost breakdown is estimated in MVP. Full P&L drill-down is in the roadmap.
+                <Metric label="Total Costs" value={`₹${profit.total_costs.toLocaleString()}`} color="text-red-400" />
+                <Metric label="Chick Cost" value={`₹${profit.chick_procurement_cost.toLocaleString()}`} />
+                <Metric label="Feed Cost" value={`₹${profit.feed_cost.toLocaleString()}`} />
+                <Metric label="Medicine Cost" value={`₹${profit.medicine_cost.toLocaleString()}`} />
+                <Metric label="Transport Cost" value={`₹${profit.transport_cost.toLocaleString()}`} />
               </div>
             </div>
           </AnimatedCard>
