@@ -18,6 +18,9 @@ class Batch(Base, TimestampMixin):
     farm_id = Column(String, ForeignKey("farms.id"), nullable=False)
     batch_code = Column(String(50), nullable=False, unique=True, index=True)
     chick_count = Column(Integer, nullable=False)
+    # Tracks live chick count; decremented per verified mortality in daily reports / weighing.
+    # Nullable for backward compatibility with rows created before migration 003.
+    remaining_chicks = Column(Integer, nullable=True)
     start_date = Column(Date, nullable=False)
     status = Column(Enum(BatchStatus), nullable=False, default=BatchStatus.active)
 

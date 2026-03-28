@@ -1,13 +1,8 @@
-import enum
-from sqlalchemy import Column, String, Float, Integer, Enum, DateTime
+from sqlalchemy import Column, String, Float, Enum, DateTime
 from sqlalchemy.orm import relationship
 from models.base import Base, TimestampMixin, gen_uuid
-
-
-class ItemType(str, enum.Enum):
-    feed = "feed"
-    medicine = "medicine"
-    chicks = "chicks"
+# ItemType is the single source of truth — defined in models.inventory
+from models.inventory import ItemType  # noqa: F401 (re-exported for backward-compat imports)
 
 
 class Procurement(Base, TimestampMixin):

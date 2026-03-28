@@ -6,7 +6,10 @@ from schemas.batch import BatchCreate, BatchUpdate
 
 class CRUDBatch(CRUDBase[Batch]):
     def create(self, db: Session, *, obj_in: BatchCreate) -> Batch:
-        db_obj = Batch(**obj_in.model_dump())
+        data = obj_in.model_dump()
+        # Initialise remaining_chicks to the starting chick count
+        data["remaining_chicks"] = data["chick_count"]
+        db_obj = Batch(**data)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

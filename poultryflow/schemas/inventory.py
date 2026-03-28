@@ -1,11 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel, field_validator
-from models.inventory import TransactionType
+from models.inventory import ItemType, TransactionType
 
 
 class InventoryInwardCreate(BaseModel):
     """Add stock via procurement linkage."""
-    item_type: str
+    item_type: ItemType
     quantity: float
     procurement_id: str
     notes: str | None = None
@@ -20,7 +20,7 @@ class InventoryInwardCreate(BaseModel):
 
 class InventoryIssueCreate(BaseModel):
     """Issue stock to a batch."""
-    item_type: str
+    item_type: ItemType
     quantity: float
     batch_id: str
     notes: str | None = None
@@ -35,7 +35,7 @@ class InventoryIssueCreate(BaseModel):
 
 class InventoryTransactionRead(BaseModel):
     id: str
-    item_type: str
+    item_type: ItemType
     transaction_type: TransactionType
     quantity: float
     balance_after: float
@@ -48,5 +48,5 @@ class InventoryTransactionRead(BaseModel):
 
 
 class InventoryBalanceRead(BaseModel):
-    item_type: str
+    item_type: ItemType
     current_balance: float

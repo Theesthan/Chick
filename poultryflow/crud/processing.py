@@ -5,10 +5,20 @@ from schemas.processing import ProcessingCreate
 
 
 class CRUDProcessing(CRUDBase[Processing]):
-    def create_with_processor(self, db: Session, *, obj_in: ProcessingCreate, processed_by: str) -> Processing:
-        loss = obj_in.farm_weight - obj_in.inward_weight
+    def create_with_processor(
+        self,
+        db: Session,
+        *,
+        obj_in: ProcessingCreate,
+        processed_by: str,
+        farm_weight: float,
+    ) -> Processing:
+        # farm_weight is auto-populated by the service layer from Weighing.net_weight sum.
+        # loss is always server-computed.
+        loss = farm_weight - obj_in.inward_weight
         db_obj = Processing(
             **obj_in.model_dump(),
+            farm_weight=farm_weight,
             loss=loss,
             processed_by=processed_by,
         )

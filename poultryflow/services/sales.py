@@ -4,6 +4,7 @@ from crud.sales import sale
 from crud.batch import batch
 from schemas.sales import SaleCreate
 from models.sales import Sale
+from models.batch import BatchStatus
 
 
 def record_sale(db: Session, *, sale_in: SaleCreate) -> Sale:
@@ -11,15 +12,26 @@ def record_sale(db: Session, *, sale_in: SaleCreate) -> Sale:
     if not db_batch:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
 
+    # Sales can only be recorded once birds have left the farm (harvested) or
+    # once the batch is fully processed (closed).
+    if db_batch.status not in (BatchStatus.harvested, BatchStatus.closed):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Cannot record sale: batch status is '{db_batch.status}'. "
+                "Sales require the batch to be 'harvested' or 'closed'."
+            ),
+        )
+
+    # total_amount is always server-computed — never accepted from the client
     return sale.create(db, obj_in=sale_in)
 
 
 def list_sales(db: Session, batch_id: str | None = None, skip: int = 0, limit: int = 50) -> list[Sale]:
     if batch_id:
-        # Check batch existence first
         db_batch = batch.get(db, id=batch_id)
         if not db_batch:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
         return sale.get_by_batch(db, batch_id=batch_id)
-    
+
     return sale.get_multi(db, skip=skip, limit=limit)

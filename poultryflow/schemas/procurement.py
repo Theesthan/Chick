@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, field_validator
-from models.procurement import ItemType
+from models.inventory import ItemType
 
 
 class ProcurementCreate(BaseModel):

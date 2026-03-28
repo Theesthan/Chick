@@ -15,10 +15,11 @@ class Processing(Base, TimestampMixin):
     inward_weight = Column(Float, nullable=False)
     loss = Column(Float, nullable=False)
 
-    # breakdown (all in kg)
+    # breakdown (all in kg) — must sum to inward_weight ± 0.01
     wings_kg = Column(Float, nullable=False, default=0.0)
     legs_kg = Column(Float, nullable=False, default=0.0)
     breast_kg = Column(Float, nullable=False, default=0.0)
+    skinless_curry_cut_kg = Column(Float, nullable=False, default=0.0)
     lollipop_kg = Column(Float, nullable=False, default=0.0)
     waste_kg = Column(Float, nullable=False, default=0.0)
 
