@@ -43,18 +43,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   hydrate: async () => {
-    const token = localStorage.getItem('token')
-    if (!token) return
+    // Snapshot the token at the moment hydrate starts.
+    // If login() completes and replaces it with a fresh token while this
+    // async function is in-flight, we must NOT overwrite or clear the new token.
+    const snapshotToken = localStorage.getItem('token')
+    if (!snapshotToken) return
     try {
-      // Re-validate token with server and refresh user data
       const user = await getMe()
       localStorage.setItem('user', JSON.stringify(user))
-      set({ user, token })
+      // Only apply if the token hasn't been replaced by a fresh login since we started
+      set((state) =>
+        state.token === snapshotToken ? { user, token: snapshotToken } : state,
+      )
     } catch {
-      // Token invalid or expired — clear everything
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      set({ token: null, user: null })
+      // Token is invalid/expired — but only clear if a fresh login hasn't already
+      // replaced it with a valid token during this async window.
+      set((state) => {
+        if (state.token !== snapshotToken) return state
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        return { token: null, user: null }
+      })
     }
   },
 }))
