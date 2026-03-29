@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, MapPin, Package, ShoppingCart, Warehouse,
   ClipboardList, Scale, Truck, Factory, TrendingUp, Users, BarChart3,
-  ChevronRight, LogOut, Bird, Activity,
+  ChevronRight, LogOut, Bird, Activity, RefreshCw,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { useSyncStore } from '../store/syncStore'
 
 const allNav = [
   { path: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard, roles: ['admin','supervisor','operator'] },
@@ -23,10 +25,36 @@ const allNav = [
   { path: '/logs',          label: 'Activity Logs',   icon: Activity,        roles: ['admin'] },
 ]
 
+function useRelativeTime(date: Date) {
+  const [label, setLabel] = useState('')
+  useEffect(() => {
+    const update = () => {
+      const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+      if (seconds < 5)  setLabel('just now')
+      else if (seconds < 60) setLabel(`${seconds}s ago`)
+      else setLabel(`${Math.floor(seconds / 60)}m ago`)
+    }
+    update()
+    const id = setInterval(update, 5000)
+    return () => clearInterval(id)
+  }, [date])
+  return label
+}
+
 export default function Sidebar() {
   const location = useLocation()
   const { user, logout } = useAuthStore()
   const nav = allNav.filter(n => user && n.roles.includes(user.role))
+
+  const { requestSync, lastSyncAt } = useSyncStore()
+  const [spinning, setSpinning] = useState(false)
+  const syncLabel = useRelativeTime(lastSyncAt)
+
+  const handleRefresh = () => {
+    setSpinning(true)
+    requestSync()
+    setTimeout(() => setSpinning(false), 800)
+  }
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-border flex flex-col h-screen sticky top-0">
@@ -67,9 +95,24 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 mb-3 px-3">
+      {/* Sync indicator + User */}
+      <div className="p-4 border-t border-border space-y-3">
+        {/* Sync row */}
+        <div className="flex items-center justify-between px-3">
+          <span className="text-xs text-muted">Synced {syncLabel}</span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            title="Refresh all data now"
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${spinning ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* User profile */}
+        <div className="flex items-center gap-3 px-3">
           <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-primary font-bold text-sm">
             {user?.name?.[0]?.toUpperCase()}
           </div>
@@ -78,7 +121,9 @@ export default function Sidebar() {
             <p className="text-xs text-muted truncate">{user?.email}</p>
           </div>
         </div>
+
         <motion.button
+          type="button"
           whileTap={{ scale: 0.97 }}
           onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-400

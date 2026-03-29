@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/thees/Desktop/Eko/Eko/Chick/admin-web/src __NEW_LINE_783f66cc7f0713ee__ echo \"=== Pages WITH useRefreshOnFocus ===\" grep -rl \"useRefreshOnFocus\" pages/)",
+      "Read(//c/Users/thees/Desktop/Eko/Eko/Chick/=== Pages WITHOUT useRefreshOnFocus \\(should be empty or login/**)",
+      "Bash(do if:*)",
+      "Bash(then echo:*)"
+    ]
+  }
+}

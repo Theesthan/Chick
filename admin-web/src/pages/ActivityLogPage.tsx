@@ -6,6 +6,7 @@ import AnimatedCard from '../components/AnimatedCard'
 import { TableSkeleton } from '../components/SkeletonLoader'
 import { useToast } from '../components/Toast'
 import { getActivityLogs, getDailySummary } from '../api'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import type { ActivityLog } from '../types'
 
 const ACTION_COLORS: Record<string, string> = {
@@ -25,12 +26,13 @@ export default function ActivityLogPage() {
   const [summary, setSummary] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    Promise.all([
-      getActivityLogs(0, 200).then(setLogs),
-      getDailySummary().then(r => setSummary(r.summary)),
-    ]).finally(() => setLoading(false))
-  }, [])
+  const load = () => Promise.all([
+    getActivityLogs(0, 200).then(setLogs),
+    getDailySummary().then(r => setSummary(r.summary)),
+  ]).finally(() => setLoading(false))
+
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useRefreshOnFocus(load)
 
   const copySummary = async () => {
     if (!summary) return
