@@ -101,9 +101,25 @@ export default function ProcessingPage() {
   const F = (k: keyof Form, v: string) => setForm(p => ({ ...p, [k]: v }))
 
   const handleBatchChange = async (id: string) => {
-    F('batch_id', id); setExisting(null); setSubmitted(false)
+    setForm({ batch_id: id, inward_weight: '', wings_kg: '0', legs_kg: '0', breast_kg: '0', skinless_curry_cut_kg: '0', lollipop_kg: '0', waste_kg: '0', shelf_life_days: '3' })
+    setExisting(null)
+    setSubmitted(false)
     if (!id) return
-    try { const p = await getProcessing(id); setExisting(p) } catch { /* no processing yet */ }
+    try {
+      const p = await getProcessing(id)
+      setExisting(p)
+      setForm({
+        batch_id: id,
+        inward_weight: String(p.inward_weight || ''),
+        wings_kg: String(p.wings_kg || '0'),
+        legs_kg: String(p.legs_kg || '0'),
+        breast_kg: String(p.breast_kg || '0'),
+        skinless_curry_cut_kg: String(p.skinless_curry_cut_kg || '0'),
+        lollipop_kg: String(p.lollipop_kg || '0'),
+        waste_kg: String(p.waste_kg || '0'),
+        shelf_life_days: String((p as any).shelf_life_days ?? '3')
+      })
+    } catch { /* no processing yet */ }
   }
 
   const totalBreakdown = BREAKDOWN_FIELDS.reduce((s, f) => s + (Number(form[f.key]) || 0), 0)

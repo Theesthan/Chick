@@ -30,12 +30,17 @@ def get_batch_performance(db: Session, batch_id: str) -> dict:
     total_feed = stats.total_feed or 0.0
 
     weight_stats = (
-        db.query(func.sum(Weighing.net_weight).label("total_weight"))
+        db.query(
+            func.sum(Weighing.net_weight).label("total_weight"),
+            func.sum(Weighing.mortality).label("weighing_mortality"),
+        )
         .filter(Weighing.batch_id == batch_id)
         .first()
     )
 
     total_weight = weight_stats.total_weight or 0.0
+    weighing_mortality = weight_stats.weighing_mortality or 0
+    total_mortality += weighing_mortality
 
     fcr = round(total_feed / total_weight, 2) if total_weight > 0 else 0.0
     survival_rate = (

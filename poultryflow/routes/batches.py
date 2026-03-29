@@ -20,7 +20,7 @@ def create_batch(
 def get_batch(
     batch_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     return batch_service.get_batch(db, batch_id=batch_id)
 
@@ -28,7 +28,7 @@ def get_batch(
 def list_batches(
     skip: int = 0, limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     return batch_service.list_batches(db, skip=skip, limit=limit)
 

@@ -30,6 +30,6 @@ def get_reports(
     batch_id: str | None = None,
     skip: int = 0, limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     return report_service.list_reports(db, batch_id=batch_id, skip=skip, limit=limit)

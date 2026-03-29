@@ -20,7 +20,7 @@ def create_farm(
 def get_farm(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     return farm_service.get_farm(db, farm_id=farm_id)
 
@@ -28,7 +28,7 @@ def get_farm(
 def list_farms(
     skip: int = 0, limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor))
+    current_user: User = Depends(require_role(UserRole.admin, UserRole.supervisor, UserRole.operator))
 ):
     return farm_service.list_farms(db, skip=skip, limit=limit)
 
